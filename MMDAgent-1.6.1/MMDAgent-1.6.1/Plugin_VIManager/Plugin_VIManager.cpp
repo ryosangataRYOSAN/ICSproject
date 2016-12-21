@@ -130,8 +130,8 @@ EXPORT void extProcMessage(MMDAgent *mmdagent, const char *type, const char *arg
 	   if (buf)
 		   free(buf);
 
-	   //enable = true;
-	   //enable_log = false;
+	   enable = true;
+	   enable_log = false;
 	   //vimanager_thread.stopAndRelease();
 	   //vimanager_thread.loadAndStart(mmdagent, "filename");
    }

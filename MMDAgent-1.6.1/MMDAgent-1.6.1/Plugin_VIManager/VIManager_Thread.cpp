@@ -187,6 +187,40 @@ void VIManager_Thread::clear()
    initialize();
 }
 
+void VIManager_Thread::Subclear()
+{
+	VIManager_Link *tmp1, *tmp2;
+
+	m_kill = true;
+
+	/*
+	if (m_cond != NULL)
+		glfwSignalCond(m_cond);
+
+	// stop thread & close mutex
+	if (m_mutex != NULL || m_cond != NULL || m_thread >= 0) {
+		if (m_thread >= 0) {
+			glfwWaitThread(m_thread, GLFW_WAIT);
+			glfwDestroyThread(m_thread);
+		}
+		if (m_cond != NULL)
+			glfwDestroyCond(m_cond);
+		if (m_mutex != NULL)
+			glfwDestroyMutex(m_mutex);
+	}
+	*/
+	/* free */
+	VIManager_EventQueue_clear(&eventQueue);
+
+	for (tmp1 = m_sub; tmp1 != NULL; tmp1 = tmp2) {
+		tmp2 = tmp1->next;
+		delete tmp1;
+	}
+
+	initialize();
+}
+
+
 /* VIManager_Thread::VIManager_Thread: thread constructor */
 VIManager_Thread::VIManager_Thread()
 {
@@ -215,7 +249,8 @@ void VIManager_Thread::loadAndStart(MMDAgent *mmdagent, const char *file)
    if (m_vim.load(file) == false) {
       mmdagent->sendLogString("Main FST file (%s) cannot be loaded.", file);
       return;
-   }
+   }else
+	   mmdagent->sendLogString("Main FST file (%s) can be loaded.", file);
 
    /* setup logger */
    m_logger.setup(mmdagent);
@@ -237,6 +272,7 @@ void VIManager_Thread::loadAndStart(MMDAgent *mmdagent, const char *file)
                mmdagent->sendLogString("Sub FST file (%s) cannot be loaded.", buf);
                delete l;
             } else {
+				mmdagent->sendLogString("Sub FST file (%s) can be loaded.", buf);
                if(m_sub == NULL)
                   m_sub = l;
                else
@@ -266,33 +302,21 @@ void VIManager_Thread::loadAndStart(MMDAgent *mmdagent, const char *file)
 void VIManager_Thread::ReloadAndStart(MMDAgent *mmdagent, const char *file)
 {
 
+	
 	DIRECTORY *dp;
 	char buf[MMDAGENT_MAXBUFLEN];
 	char *dir, *fst;
 	VIManager_Link *l, *last = NULL;
-	VIManager_Link *tmp1, *tmp2;
 
-	m_kill = true;
+	Subclear();
 
-	for (tmp1 = m_sub; tmp1 != NULL; tmp1 = tmp2) {
-		tmp2 = tmp1->next;
-		delete tmp1;
-	}
 	if (mmdagent == NULL)
 		return;
-	
-//	/* load FST for VIManager */
-//	if (m_vim.load(file) == false) {
-//		mmdagent->sendLogString("Main FST file (%s) cannot be loaded.", file);
-//		return;
-//	}
 
 	/* setup logger */
-//	m_logger.setup(mmdagent);
+	m_logger.setup(mmdagent);
 
-//	m_mmdagent = mmdagent;
-
-	
+	m_mmdagent = mmdagent;
 
 	/* get dir and fst */
 	dir = MMDAgent_dirname(file);
@@ -324,10 +348,16 @@ void VIManager_Thread::ReloadAndStart(MMDAgent *mmdagent, const char *file)
 	free(dir);
 	free(fst);
 
-	m_kill = false;
-	
+	/* start thread */
+	glfwInit();
+	m_mutex = glfwCreateMutex();
+	m_cond = glfwCreateCond();
+	m_thread = glfwCreateThread(mainThread, this);
+	if (m_mutex == NULL || m_cond == NULL || m_thread < 0) {
+		clear();
+		return;
+	}
 }
-
 /* VIManager_Thread::stopAndRelease: stop thread and release */
 void VIManager_Thread::stopAndRelease()
 {

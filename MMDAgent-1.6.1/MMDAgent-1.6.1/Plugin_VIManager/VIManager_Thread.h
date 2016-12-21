@@ -84,6 +84,9 @@ private:
    /* clear: free thread */
    void clear();
 
+   /*サブfstファイルをクリアする用*/
+   void Subclear();
+
 public:
 
    /* VIManager_Thraed: thread constructor */
@@ -97,6 +100,8 @@ public:
 
    /* サブfstファイルを読み込む用 */
    void ReloadAndStart(MMDAgent *mmdagent, const char *file);
+
+
 
    /* stopAndRelease: stop thread and release */
    void stopAndRelease();
